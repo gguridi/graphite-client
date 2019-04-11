@@ -16,6 +16,7 @@ var _ = Describe("graphite aggregator", func() {
 		client     Graphite
 		agg        Aggregator
 		testMetric = "metric"
+		mutex      = &sync.Mutex{}
 	)
 
 	BeforeEach(func() {
@@ -38,6 +39,8 @@ var _ = Describe("graphite aggregator", func() {
 	})
 
 	var getTotalSent = func(client Graphite) int {
+		mutex.Lock()
+		defer mutex.Unlock()
 		total := 0
 		for _, value := range client.(*MockGraphite).Data {
 			number, _ := strconv.Atoi(value)
