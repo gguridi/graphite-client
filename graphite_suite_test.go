@@ -15,7 +15,9 @@ func TestGraphiteClient(t *testing.T) {
 }
 
 const (
-	MAX_BUFFER = 2048
+	// MaxBuffer specifies a maximum buffer to use during the tests, to store whatever
+	// we receive through the different test servers we create.
+	MaxBuffer = 2048
 )
 
 func tcpHandler(received chan string, listener net.Listener) {
@@ -28,7 +30,7 @@ func tcpHandler(received chan string, listener net.Listener) {
 			}
 			defer connection.Close()
 
-			buffer := make([]byte, MAX_BUFFER)
+			buffer := make([]byte, MaxBuffer)
 			_, err = connection.Read(buffer)
 			if err != nil {
 				return
@@ -45,7 +47,7 @@ func tcpHandler(received chan string, listener net.Listener) {
 func udpHandler(received chan string, listener net.PacketConn) {
 	fmt.Println("Listening to udp connections...")
 	for {
-		buffer := make([]byte, MAX_BUFFER)
+		buffer := make([]byte, MaxBuffer)
 		listener.ReadFrom(buffer)
 		message := string(buffer)
 		if message != "" {
