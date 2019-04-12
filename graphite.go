@@ -133,12 +133,10 @@ func (graphite *graphite) SendBuffer(buffer *bytes.Buffer) (int, error) {
 
 func (graphite *graphite) connect(protocol string) (net.Conn, error) {
 	switch protocol {
-	case ProtocolTCP:
-		return graphite.connectTCP()
 	case ProtocolUDP:
 		return graphite.connectUDP()
 	default:
-		return nil, fmt.Errorf("Protocol [%s] not supported", protocol)
+		return graphite.connectTCP()
 	}
 }
 

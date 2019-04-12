@@ -80,7 +80,6 @@ var _ = Describe("graphite client", func() {
 		})
 
 		It("send a message with metric and value to graphite", func() {
-			client.Connect()
 			n, err := client.Send("metricA", "10")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(n).To(Equal(22))
@@ -101,6 +100,13 @@ var _ = Describe("graphite client", func() {
 			Expect(n).To(Equal(21))
 			Eventually(result).Should(Receive(&resultString))
 			Expect(resultString).To(ContainSubstring("metric 10 1554992147\n"))
+		})
+
+		It("returns an error if it can't deliver the metric to graphite", func() {
+			listener.Close()
+			n, err := client.Send("metricA", "10")
+			Expect(err).To(HaveOccurred())
+			Expect(n).To(Equal(0))
 		})
 	})
 
@@ -189,6 +195,13 @@ var _ = Describe("graphite client", func() {
 			Expect(n).To(Equal(21))
 			Eventually(result).Should(Receive(&resultString))
 			Expect(resultString).To(ContainSubstring("metric 10 1554992147\n"))
+		})
+
+		It("doesn't return an error if can't deliver the metric to graphite because it's UDP", func() {
+			listener.Close()
+			n, err := client.Send("metricA", "10")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(n).To(Equal(22))
 		})
 	})
 })

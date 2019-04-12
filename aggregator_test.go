@@ -72,6 +72,13 @@ var _ = Describe("graphite aggregator", func() {
 		var _ Aggregator = (*aggregator)(nil)
 	})
 
+	It("is returned by the graphite client properly configured", func() {
+		client = NewGraphiteTCP(&Config{Host: "test.com"})
+		aggregator := client.NewAggregator().(*aggregator)
+		Expect(aggregator.config).To(Equal(client.(*graphite).config))
+		Expect(aggregator.client).To(Equal(client))
+	})
+
 	Context("sum aggregates", func() {
 
 		It("should initialise metric with first given value", func() {
