@@ -2,6 +2,7 @@ package graphite
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,29 +17,9 @@ var _ = Describe("graphite aggregator", func() {
 		client     Graphite
 		agg        Aggregator
 		testMetric = "metric"
+		failMetric = "force.fail"
 		mutex      = &sync.Mutex{}
 	)
-
-	BeforeEach(func() {
-		client = &MockGraphite{
-			Data: map[string]string{},
-			MethodSendBuffer: func(m *MockGraphite, buffer *bytes.Buffer) (int, error) {
-				mutex.Lock()
-				defer mutex.Unlock()
-				var value int
-				var timestamp int
-				n, err := fmt.Sscanf(buffer.String(), "metric %d %d\n", &value, &timestamp)
-				entry := strconv.FormatInt(time.Now().UnixNano(), 10)
-				m.Data[entry] = strconv.FormatInt(int64(value), 10)
-				return n, err
-			},
-		}
-		agg = &aggregator{
-			config:  &Config{},
-			client:  client,
-			metrics: map[string]Metric{},
-		}
-	})
 
 	var getTotalSent = func(client Graphite) int {
 		mutex.Lock()
@@ -50,6 +31,42 @@ var _ = Describe("graphite aggregator", func() {
 		}
 		return total
 	}
+
+	var getFlushSent = func(client Graphite) int {
+		mutex.Lock()
+		defer mutex.Unlock()
+		return len(client.(*MockGraphite).Data)
+	}
+
+	var getMetricInfo = func(received string) (string, int, int) {
+		var metric string
+		var value int
+		var timestamp int
+		fmt.Sscanf(received, "%s %d %d\n", &metric, &value, &timestamp)
+		return metric, value, timestamp
+	}
+
+	BeforeEach(func() {
+		client = &MockGraphite{
+			Data: map[string]string{},
+			MethodSendBuffer: func(m *MockGraphite, buffer *bytes.Buffer) (int, error) {
+				mutex.Lock()
+				defer mutex.Unlock()
+				metric, value, _ := getMetricInfo(buffer.String())
+				entry := strconv.FormatInt(time.Now().UnixNano(), 10)
+				m.Data[entry] = strconv.FormatInt(int64(value), 10)
+				if metric == failMetric {
+					return 0, errors.New("Unable to send metrics to graphite")
+				}
+				return 0, nil
+			},
+		}
+		agg = &aggregator{
+			config:  &Config{},
+			client:  client,
+			metrics: map[string]Metric{},
+		}
+	})
 
 	It("should implement Aggregator interface", func() {
 		var _ Aggregator = (*aggregator)(nil)
@@ -242,6 +259,18 @@ var _ = Describe("graphite aggregator", func() {
 			agg.AddSum(testMetric, 25)
 			time.Sleep(3 * time.Second)
 			Expect(getTotalSent(client)).To(Equal(15))
+		})
+
+		It("keeps trying periodically even if one Flush fails, keeping the data", func() {
+			agg.Run(2*time.Second, stop)
+			agg.AddSum(failMetric, 15)
+			time.Sleep(3 * time.Second)
+			Expect(getFlushSent(client)).To(Equal(1))
+			agg.AddSum(failMetric, 25)
+			time.Sleep(2 * time.Second)
+			Expect(getFlushSent(client)).To(Equal(2))
+			metrics := agg.(*aggregator).GetMetrics()
+			Expect(metrics[failMetric].Calculate()).To(Equal("40"))
 		})
 	})
 

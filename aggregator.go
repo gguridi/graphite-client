@@ -64,8 +64,11 @@ func (a *aggregator) Flush() (int, error) {
 		for path, metric := range a.metrics {
 			buffer.WriteString(fmt.Sprintf("%s %s %d\n", path, metric.Calculate(), timestamp))
 		}
-		a.metrics = map[string]Metric{}
-		return a.client.SendBuffer(buffer)
+		n, err := a.client.SendBuffer(buffer)
+		if err == nil {
+			a.metrics = map[string]Metric{}
+		}
+		return n, err
 	}
 	return 0, nil
 }
