@@ -5,10 +5,16 @@ import (
 	"strconv"
 )
 
-// Metric is an interface to be able to create new metric types easily
+// Metric is an interface to be able to create new metric types easily.
+// Each metric must have some methods to be able to be used by the Aggregator.
 type Metric interface {
+
+	// Update receives a generic value through interface{} to update its internal value.
 	Update(interface{})
+	// Clear is used to reset the metric to the initial value.
 	Clear()
+	// Calculate is used to perform the necessary operations to retrieve the final value
+	// that will be sent to graphite, standarised as a string.
 	Calculate() string
 }
 

@@ -31,8 +31,7 @@ type graphite struct {
 	connection net.Conn
 }
 
-// NewGraphite returns a new client based on a configuration and a protocol to use.
-func NewGraphite(config *Config, protocol string) Graphite {
+func newGraphite(config *Config, protocol string) Graphite {
 	return &graphite{
 		config:   config,
 		protocol: protocol,
@@ -41,12 +40,12 @@ func NewGraphite(config *Config, protocol string) Graphite {
 
 // NewGraphiteTCP creates a new graphite client based on TCP.
 func NewGraphiteTCP(config *Config) Graphite {
-	return NewGraphite(config, ProtocolTCP)
+	return newGraphite(config, ProtocolTCP)
 }
 
 // NewGraphiteUDP creates a new graphite client based on UDP.
 func NewGraphiteUDP(config *Config) Graphite {
-	return NewGraphite(config, ProtocolUDP)
+	return newGraphite(config, ProtocolUDP)
 }
 
 // Connect establishes a connection with the graphite server, returning an error if something happened.
@@ -92,6 +91,16 @@ func (graphite *graphite) getConnection() (net.Conn, error) {
 	return graphite.connection, nil
 }
 
+// Send is used to immediately send a metric to graphite, without having to specify a timestamp
+// that will be acquired from the current datetime.
+//
+//         import graphite "github.com/gguridi/graphite-client"
+//
+//         client := graphite.NewGraphiteTCP(graphite.Config{
+//             Host: "example.com",
+//             Port: 2003,
+//         })
+//         client.Send("files.processed.count", 15)
 func (graphite *graphite) Send(path, value string) (int, error) {
 	metric := graphite.format(path, value, time.Now().Unix())
 	return graphite.SendBuffer(bytes.NewBufferString(metric))
@@ -101,6 +110,19 @@ func (graphite *graphite) format(path string, value string, timestamp int64) str
 	return fmt.Sprintf("%s %s %d\n", path, value, timestamp)
 }
 
+// SendBuffer is used to immediately send a while buffer to graphite.
+//
+//         import graphite "github.com/gguridi/graphite-client"
+//         import bytes
+//
+//         client := graphite.NewGraphiteTCP(graphite.Config{
+//             Host: "example.com",
+//             Port: 2003,
+//         })
+//         client.SendBuffer(bytes.NewBufferString(`
+//             files.processed.count 15 1554992147
+//             files.unprocessed.count 35 1554992147
+//         `))
 func (graphite *graphite) SendBuffer(buffer *bytes.Buffer) (int, error) {
 	connection, err := graphite.getConnection()
 	if err == nil {

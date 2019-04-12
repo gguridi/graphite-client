@@ -1,4 +1,5 @@
-# graphite-client
+# graphite-client 
+[![Build Status](https://travis-ci.org/gguridi/graphite-client.svg?branch=master)](https://travis-ci.org/gguridi/graphite-client)
 
 Graphite client written in Go, focused in thread-safe and automatic aggregations.
 
@@ -23,8 +24,8 @@ The different options to configure the client can be found [here]().
 
 Currently we support two protocols to connect with graphite.
 
-- *TCP*: using the `NewGraphiteTCP` constructor.
-- *UDP*: using the `NewGraphiteUDP` constructor.
+- **TCP**: using the `NewGraphiteTCP` constructor.
+- **UDP**: using the `NewGraphiteUDP` constructor.
 
 ## Simple client
 
@@ -48,6 +49,12 @@ and then send one metric to graphite:
 if _, err:= client.Send("metric.name.count", 55); err != nil {
     fmt.Println("Unable to send metrics to graphite")
 }
+```
+
+or if we don't mind if we could send or not the metric to graphite:
+
+```go
+client.Send("metric.name.count", 55)
 ```
 
 ## Aggregator
@@ -78,8 +85,8 @@ aggregator.AddSum("metric.sent.count", 5)
 aggregator.Flush()
 ```
 
-Note that that will send two metrics at once, one for `received` with a value of 25, and
-another one for `sent` with a value of 5.
+This will send two metrics at once, one for `metric.received.count` with a value of 25, and
+another one for `metric.sent.count` with a value of 5.
 
 ### Metric types
 
@@ -89,6 +96,8 @@ with the method of the `Aggregator` interface.
 - `AddSum`: Will initialise a metric where the final value sent to graphite will be the addition
 of all the values passed to the aggregator. So if we call `AddSum` with a specific metric path and
 values 5, 10, 15 and then we `Flush`, we will be sending a final value of 30 to graphite.
+- `Increase`: Used as an alias of `AddSum` where the value incremented is always 1. Useful for giving
+a comprehensive behaviour to the metric. 
 - `AddAverage`: Will initialise a metric where the final value sent to graphite will be the average 
 of all the values passed to the aggregator. So if we call `AddAverage` with a specific metric path
 and values 2, 10, 10 and then we `Flush`, we will be sending a final value of 7.333333 to graphite. The
