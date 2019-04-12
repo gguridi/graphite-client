@@ -23,6 +23,8 @@ var _ = Describe("graphite aggregator", func() {
 		client = &MockGraphite{
 			Data: map[string]string{},
 			MethodSendBuffer: func(m *MockGraphite, buffer *bytes.Buffer) (int, error) {
+				mutex.Lock()
+				defer mutex.Unlock()
 				var value int
 				var timestamp int
 				n, err := fmt.Sscanf(buffer.String(), "metric %d %d\n", &value, &timestamp)
