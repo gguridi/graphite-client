@@ -2,10 +2,11 @@ package graphite_test
 
 import (
 	"bytes"
+	"net"
+
 	. "github.com/gguridi/graphite-client"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"net"
 )
 
 var _ = Describe("graphite client", func() {
@@ -136,7 +137,7 @@ var _ = Describe("graphite client", func() {
 		It("connects returns an error if graphite host is not reacheable", func() {
 			client = NewGraphiteUDP(&Config{
 				Host: "unknown",
-				Port: 3001,
+				Port: 103006,
 			})
 			err := client.Connect()
 			Expect(err).To(HaveOccurred())
