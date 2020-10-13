@@ -14,6 +14,7 @@ type MockAggregator struct {
 	MethodSetInactive func(*MockAggregator, string)
 	MethodRun         func(*MockAggregator, time.Duration, chan bool) Aggregator
 	MethodFlush       func(*MockAggregator) (int, error)
+	MethodRetry       func(*MockAggregator) (int, error)
 }
 
 // AddSum is an implementation of Aggregator interface to be used with the mocking object.
@@ -73,6 +74,14 @@ func (m *MockAggregator) Run(period time.Duration, stop chan bool) Aggregator {
 func (m *MockAggregator) Flush() (int, error) {
 	if m.MethodFlush != nil {
 		return m.MethodFlush(m)
+	}
+	return 0, nil
+}
+
+// Retry is an implementation of Aggregator interface to be used with the mocking object.
+func (m *MockAggregator) Retry() (int, error) {
+	if m.MethodRetry != nil {
+		return m.MethodRetry(m)
 	}
 	return 0, nil
 }

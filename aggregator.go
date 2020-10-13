@@ -20,6 +20,7 @@ type Aggregator interface {
 	SetInactive(string)
 	Run(time.Duration, chan bool) Aggregator
 	Flush() (int, error)
+	Retry() (int, error)
 }
 
 type aggregator struct {
@@ -31,6 +32,13 @@ type aggregator struct {
 // GetMetrics retuns the metrics stored till this point in the aggregator.
 func (a *aggregator) GetMetrics() map[string]Metric {
 	return a.metrics
+}
+
+// Retry tries to retry the flush of metrics in case something went wrong. If this
+// retry went wrong it won't try a third time.
+func (a *aggregator) Retry() (int, error) {
+	a.client.Reconnect()
+	return a.Flush()
 }
 
 func (a *aggregator) getMetric(path string, defaultMetric Metric) Metric {
@@ -80,6 +88,9 @@ func (a *aggregator) run(period time.Duration, stopSendingMetrics chan bool) {
 		case <-ticker.C:
 			if _, err := a.Flush(); err != nil {
 				log.Printf("Unable to send metrics: %s\n", err.Error())
+				if _, err := a.Retry(); err != nil {
+					log.Printf("Unable to send metrics after reconnecting neither: %s\n", err.Error())
+				}
 			}
 		case <-stopSendingMetrics:
 			return
