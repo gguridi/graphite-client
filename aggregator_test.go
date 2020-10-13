@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"strconv"
 	"sync"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("graphite aggregator", func() {
@@ -48,7 +49,12 @@ var _ = Describe("graphite aggregator", func() {
 
 	BeforeEach(func() {
 		client = &MockGraphite{
-			Data: map[string]string{},
+			Extra: map[string]interface{}{},
+			Data:  map[string]string{},
+			MethodReconnect: func(m *MockGraphite) error {
+				m.Extra["reconnected"] = "yes, it tried!"
+				return nil
+			},
 			MethodSendBuffer: func(m *MockGraphite, buffer *bytes.Buffer) (int, error) {
 				mutex.Lock()
 				defer mutex.Unlock()
@@ -272,12 +278,20 @@ var _ = Describe("graphite aggregator", func() {
 			agg.Run(2*time.Second, stop)
 			agg.AddSum(failMetric, 15)
 			time.Sleep(3 * time.Second)
-			Expect(getFlushSent(client)).To(Equal(1))
+			Expect(getFlushSent(client)).To(Equal(2))
 			agg.AddSum(failMetric, 25)
 			time.Sleep(2 * time.Second)
-			Expect(getFlushSent(client)).To(Equal(2))
+			Expect(getFlushSent(client)).To(Equal(4))
 			metrics := agg.(*aggregator).GetMetrics()
 			Expect(metrics[failMetric].Calculate()).To(Equal("40"))
+		})
+
+		It("retries once if something went wrong", func() {
+			agg.Run(2*time.Second, stop)
+			agg.AddSum(failMetric, 15)
+			time.Sleep(3 * time.Second)
+			Expect(getFlushSent(client)).To(Equal(2))
+			Expect(client.(*MockGraphite).Extra).To(HaveKey("reconnected"))
 		})
 	})
 

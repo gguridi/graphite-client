@@ -7,6 +7,7 @@ import (
 
 // MockGraphite implements the interface Graphite
 type MockGraphite struct {
+	Extra               map[string]interface{}
 	Data                map[string]string
 	MethodSend          func(*MockGraphite, string, string) (int, error)
 	MethodSendBuffer    func(*MockGraphite, *bytes.Buffer) (int, error)
